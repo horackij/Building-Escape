@@ -12,18 +12,30 @@ UGrabber::UGrabber()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
-
 
 // Called when the game starts
 void UGrabber::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//UE_LOG(LogTemp, Warning, TEXT("Grabber reporting for duty!"));
-	
+	FindPhysicsHandle();
+	SetupInputComponent();
+}
+
+void UGrabber::SetupInputComponent()
+{
+	InputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
+	if (InputComponent)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("Input Component found on %s"), *GetOwner()->GetName());
+		InputComponent->BindAction("Grab", IE_Pressed, this, &UGrabber::Grab);
+		InputComponent->BindAction("Grab", IE_Released, this, &UGrabber::Release);
+	}
+}
+
+void UGrabber::FindPhysicsHandle()
+{
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
 	if (PhysicsHandle)
 	{
@@ -33,21 +45,12 @@ void UGrabber::BeginPlay()
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s has no Physics Handler component"), *GetOwner()->GetName());
 	}
-	InputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
-	if (InputComponent)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("Input Component found on %s"), *GetOwner()->GetName());
-		InputComponent->BindAction("Grab", IE_Pressed, this, &UGrabber::Grab);
-		InputComponent->BindAction("Grab", IE_Released, this, &UGrabber::Release);
-	}
-	
-	
-	
 }
 
 void UGrabber::Grab()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Grabber Pressed"));
+	GetFirstPhysicsBodyInReach();
 }
 
 void UGrabber::Release()
@@ -60,6 +63,10 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+}
+
+FHitResult UGrabber::GetFirstPhysicsBodyInReach() const
+{
 	FVector PlayerViewPointLocation;
 	FRotator PlayerViewPointRotation;
 
@@ -68,8 +75,7 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 	//UE_LOG(LogTemp, Warning, TEXT("The location is: %s.  The Rotation is: %s."),*PlayerViewPointLocation.ToString(),*PlayerViewPointRotation.ToString());
 
 	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
-
-	DrawDebugLine(GetWorld(), PlayerViewPointLocation, LineTraceEnd, FColor(0,255,0), false, 0.f,0.f,5.f);
+	//DrawDebugLine(GetWorld(), PlayerViewPointLocation, LineTraceEnd, FColor(0,255,0), false, 0.f,0.f,5.f);
 
 	FHitResult Hit;
 	FCollisionQueryParams TraceParams(FName(TEXT("")), false, GetOwner());
@@ -82,6 +88,5 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 		UE_LOG(LogTemp, Warning, TEXT("The trace has hit: %s "),*(ActorHit->GetName()));
 	}
 
-
+	return Hit;
 }
-
